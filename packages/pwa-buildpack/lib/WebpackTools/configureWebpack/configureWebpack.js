@@ -22,6 +22,10 @@ const ModuleTransformConfig = require('../ModuleTransformConfig');
  * @typedef {Object} WebpackConfigHelper
  * @property {boolean} mode - Webpack mode derived from env:
  *   'development'|'production'|'none'
+ * @property {string} publicPath - Override the Webpack `publicPath`, the real
+ * URL path from which the app will expect to be served. Defaults to env var
+ * DEV_SERVER_PUBLIC_PATH in development mode, and STAGING_SERVER_PUBLIC_PATH
+ * in production mode.
  * @property {string} context - Root directory of project
  * @property {boolean} babelRootMode - Babel config search mode:
  *   'root'|'upward'|'upward-optional
@@ -136,10 +140,13 @@ async function configureWebpack(options) {
         throw projectConfig.error;
     }
 
-    const paths = {
-        src: path.resolve(context, 'src'),
-        output: path.resolve(context, 'dist')
-    };
+    const paths = Object.assign(
+        {
+            src: path.resolve(context, 'src'),
+            output: path.resolve(context, 'dist')
+        },
+        options.paths || {}
+    );
 
     const isEE = projectConfig.env.MAGENTO_BACKEND_EDITION === 'EE';
 
@@ -182,13 +189,22 @@ async function configureWebpack(options) {
         resolver,
         stats,
         transformRequests,
-        bus
+        bus,
+        vendor: options.vendor || []
     };
 
-    const clientConfig = await getClientConfig({
-        ...configHelper,
-        vendor: options.vendor || []
-    });
+    if (options.publicPath) {
+        configHelper.publicPath = options.publicPath;
+    } else {
+        const publicPathSettings = projectConfig.section(
+            mode === 'development' ? 'devServer' : 'stagingServer'
+        );
+        if (publicPathSettings && publicPathSettings.publicPath) {
+            configHelper.publicPath = publicPathSettings.publicPath;
+        }
+    }
+
+    const clientConfig = await getClientConfig(configHelper);
 
     const buildBusPlugin = new BuildBusPlugin(bus, busTrackingQueue);
     clientConfig.plugins.unshift(buildBusPlugin);

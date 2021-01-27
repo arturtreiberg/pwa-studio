@@ -2,7 +2,7 @@ const loadEnvironment = require('../Utilities/loadEnvironment');
 const path = require('path');
 const fs = require('fs');
 
-module.exports = async function serve(dirname) {
+module.exports = async function serve(dirname, options = {}) {
     const config = await loadEnvironment(dirname);
     if (config.error) {
         // loadEnvironment takes care of logging it
@@ -14,7 +14,7 @@ module.exports = async function serve(dirname) {
     const stagingServerSettings = config.section('stagingServer');
     const customHttpsSettings = config.section('customHttps');
 
-    process.chdir(path.join(dirname, 'dist'));
+    process.chdir(path.join(dirname, options.webroot || 'dist'));
 
     const upwardServerOptions = Object.assign(
         // defaults
