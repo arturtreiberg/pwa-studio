@@ -64,6 +64,7 @@ async function createUpwardServer({
         errorhandler.title = `⚠️ Error in upward-js v${version}`;
         app.use(errorhandler());
     }
+
     if (bindLocal) {
         return new Promise((resolve, reject) => {
             try {
